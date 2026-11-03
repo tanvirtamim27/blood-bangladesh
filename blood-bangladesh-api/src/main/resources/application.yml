@@ -15,6 +15,7 @@
 server:
   port: 8080
 
-  spring:
-    thymeleaf:
-      check-template-location: false
+app:
+  jwt:
+    secret: change-this-to-a-long-random-string-at-least-32-chars-long
+    access-token-minutes: 15
