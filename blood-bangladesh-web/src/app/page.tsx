@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { GROUPS } from "@/lib/api";
 import { useLang } from "@/lib/i18n";
+import RequestFeed from "@/components/RequestFeed";
 
 export default function Home() {
   const { t } = useLang();
@@ -31,6 +32,16 @@ export default function Home() {
             {t("heroJoin")}
           </Link>
         </div>
+      </section>
+
+      <section>
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="text-xl font-semibold">{t("reqFeedTitle")}</h2>
+          <Link href="/requests" className="text-sm text-red-600 hover:underline">
+            {t("reqFeedAll")}
+          </Link>
+        </div>
+        <RequestFeed limit={5} />
       </section>
 
       <section>

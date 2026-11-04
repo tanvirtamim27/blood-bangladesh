@@ -22,20 +22,23 @@ export default function Navbar() {
 
   return (
     <header className="sticky top-0 z-10 border-b border-red-100 bg-white/90 backdrop-blur dark:border-red-950 dark:bg-[#0f0f12]/90">
-      <nav className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
+      <nav className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-2 px-4 py-3">
         <Link href="/" className="flex items-center gap-2 text-lg font-bold text-red-600">
           <span>🩸</span> {t("brand")}
         </Link>
-        <div className="flex items-center gap-3 text-sm">
+        <div className="flex flex-wrap items-center gap-3 text-sm">
           <Link href="/search" className="hover:text-red-600">
             {t("navFind")}
+          </Link>
+          <Link href="/requests" className="hover:text-red-600">
+            {t("navRequests")}
           </Link>
           {name ? (
             <>
               <Link href="/profile" className="hover:text-red-600">
                 {t("navProfile")}
               </Link>
-              <span className="hidden text-gray-600 sm:inline dark:text-gray-300">{name}</span>
+              <span className="hidden text-gray-600 md:inline dark:text-gray-300">{name}</span>
               <button
                 onClick={clearAuth}
                 className="rounded-lg border border-red-200 px-3 py-1.5 text-red-600 hover:bg-red-50 dark:border-red-900 dark:hover:bg-red-950"
