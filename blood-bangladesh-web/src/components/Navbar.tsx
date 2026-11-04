@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useTheme } from "next-themes";
-import { api, clearAuth } from "@/lib/api";
+import { api, clearAuth, getRole } from "@/lib/api";
 import { useLang } from "@/lib/i18n";
 
 export default function Navbar() {
@@ -11,11 +11,15 @@ export default function Navbar() {
   const { lang, setLang, t } = useLang();
   const [mounted, setMounted] = useState(false);
   const [name, setName] = useState<string | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [unread, setUnread] = useState(0);
 
   useEffect(() => {
     setMounted(true);
-    const read = () => setName(localStorage.getItem("bb_name"));
+    const read = () => {
+      setName(localStorage.getItem("bb_name"));
+      setIsAdmin(getRole() === "ROLE_ADMIN");
+    };
     read();
     window.addEventListener("bb-auth", read);
     return () => window.removeEventListener("bb-auth", read);
@@ -57,6 +61,11 @@ export default function Navbar() {
               <Link href="/profile" className="hover:text-red-600">
                 {t("navProfile")}
               </Link>
+              {isAdmin && (
+                <Link href="/admin" className="font-semibold text-red-600 hover:underline">
+                  🛡️ Admin
+                </Link>
+              )}
               <Link
                 href="/notifications"
                 aria-label="Notifications"

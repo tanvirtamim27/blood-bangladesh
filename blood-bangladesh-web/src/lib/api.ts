@@ -23,6 +23,19 @@ export function getToken(): string | null {
   }
 }
 
+// Reads the role from the token. Only used to show/hide UI;
+// the server enforces the real permission.
+export function getRole(): string | null {
+  const token = getToken();
+  if (!token) return null;
+  try {
+    const payload = token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/");
+    return JSON.parse(atob(payload)).role ?? null;
+  } catch {
+    return null;
+  }
+}
+
 export function saveAuth(token: string, name: string) {
   localStorage.setItem("bb_token", token);
   localStorage.setItem("bb_name", name);

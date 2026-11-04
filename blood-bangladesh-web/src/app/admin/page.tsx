@@ -1,0 +1,382 @@
+"use client";
+
+import { useCallback, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { api, getRole, getToken, groupLabel } from "@/lib/api";
+import { useLang } from "@/lib/i18n";
+import { formatTime } from "@/components/RequestFeed";
+
+type Stats = {
+  users: number;
+  donors: number;
+  verifiedDonors: number;
+  openRequests: number;
+  fulfilledRequests: number;
+  totalRequests: number;
+  byGroup: { group: string; count: number }[];
+};
+type AUser = {
+  id: string;
+  fullName: string;
+  email: string | null;
+  phone: string | null;
+  role: string;
+  enabled: boolean;
+  hasProfile: boolean;
+  verified: boolean;
+  createdAt: string;
+};
+type AReq = {
+  id: string;
+  patientName: string;
+  bloodGroup: string;
+  hospitalName: string;
+  districtName: string | null;
+  status: string;
+  urgent: boolean;
+  requesterName: string;
+  requesterEmail: string | null;
+  neededAt: string;
+  createdAt: string;
+};
+
+const text = {
+  en: {
+    title: "🛡️ Admin Panel",
+    tabStats: "Overview",
+    tabUsers: "Users",
+    tabReqs: "Requests",
+    noAccess: "You do not have access to this page. Please log in with an admin account.",
+    loading: "Loading...",
+    error: "Something went wrong. Please check that the server is running.",
+    users: "Users",
+    donors: "Donors",
+    verified: "Verified donors",
+    open: "Open requests",
+    fulfilled: "Fulfilled requests",
+    total: "Total requests",
+    byGroup: "Donors by blood group",
+    search: "Search name, email or phone",
+    go: "Search",
+    ban: "Ban",
+    unban: "Unban",
+    banned: "Banned",
+    verify: "Verify donor",
+    unverify: "Remove verification",
+    admin: "Admin",
+    remove: "Remove request",
+    confirmRemove: "Remove this request from the public feed?",
+    confirmBan: "Change this account's status?",
+    by: "By",
+    none: "Nothing found.",
+  },
+  bn: {
+    title: "🛡️ অ্যাডমিন প্যানেল",
+    tabStats: "সারসংক্ষেপ",
+    tabUsers: "ইউজার",
+    tabReqs: "অনুরোধ",
+    noAccess: "এই পেজে আপনার প্রবেশাধিকার নেই। অ্যাডমিন অ্যাকাউন্টে লগইন করুন।",
+    loading: "লোড হচ্ছে...",
+    error: "কিছু ভুল হয়েছে। সার্ভার চালু আছে কিনা দেখুন।",
+    users: "ইউজার",
+    donors: "রক্তদাতা",
+    verified: "ভেরিফাইড দাতা",
+    open: "খোলা অনুরোধ",
+    fulfilled: "সম্পন্ন অনুরোধ",
+    total: "মোট অনুরোধ",
+    byGroup: "রক্তের গ্রুপ অনুযায়ী দাতা",
+    search: "নাম, ইমেইল বা ফোন দিয়ে খুঁজুন",
+    go: "খুঁজুন",
+    ban: "ব্যান করুন",
+    unban: "আনব্যান",
+    banned: "ব্যান করা",
+    verify: "দাতা ভেরিফাই করুন",
+    unverify: "ভেরিফিকেশন তুলুন",
+    admin: "অ্যাডমিন",
+    remove: "অনুরোধ সরান",
+    confirmRemove: "এই অনুরোধ পাবলিক ফিড থেকে সরাবেন?",
+    confirmBan: "এই অ্যাকাউন্টের অবস্থা বদলাবেন?",
+    by: "অনুরোধকারী",
+    none: "কিছু পাওয়া যায়নি।",
+  },
+};
+
+const field =
+  "rounded-xl border border-gray-300 bg-white px-3 py-2 dark:border-gray-700 dark:bg-gray-900";
+
+export default function AdminPage() {
+  const router = useRouter();
+  const { lang } = useLang();
+  const tr = text[lang];
+
+  const [role, setRole] = useState<string | null | undefined>(undefined);
+  const [tab, setTab] = useState<"stats" | "users" | "reqs">("stats");
+  const [stats, setStats] = useState<Stats | null>(null);
+  const [users, setUsers] = useState<AUser[] | null>(null);
+  const [reqs, setReqs] = useState<AReq[] | null>(null);
+  const [q, setQ] = useState("");
+  const [error, setError] = useState(false);
+
+  useEffect(() => {
+    if (!getToken()) {
+      router.replace("/login");
+      return;
+    }
+    setRole(getRole());
+  }, [router]);
+
+  const loadUsers = useCallback(async (query: string) => {
+    try {
+      const p = query.trim() ? `?q=${encodeURIComponent(query.trim())}` : "";
+      setUsers(await api<AUser[]>(`/api/v1/admin/users${p}`));
+      setError(false);
+    } catch {
+      setError(true);
+    }
+  }, []);
+
+  const loadReqs = useCallback(async () => {
+    try {
+      setReqs(await api<AReq[]>("/api/v1/admin/requests"));
+      setError(false);
+    } catch {
+      setError(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (role !== "ROLE_ADMIN") return;
+    if (tab === "stats") {
+      api<Stats>("/api/v1/admin/stats")
+        .then((s) => {
+          setStats(s);
+          setError(false);
+        })
+        .catch(() => setError(true));
+    }
+    if (tab === "users") loadUsers("");
+    if (tab === "reqs") loadReqs();
+  }, [tab, role, loadUsers, loadReqs]);
+
+  async function toggleBan(u: AUser) {
+    if (!confirm(tr.confirmBan)) return;
+    try {
+      await api(`/api/v1/admin/users/${u.id}/enabled`, {
+        method: "PATCH",
+        body: JSON.stringify({ enabled: !u.enabled }),
+      });
+      loadUsers(q);
+    } catch {
+      setError(true);
+    }
+  }
+
+  async function toggleVerify(u: AUser) {
+    try {
+      await api(`/api/v1/admin/donors/${u.id}/verified`, {
+        method: "PATCH",
+        body: JSON.stringify({ verified: !u.verified }),
+      });
+      loadUsers(q);
+    } catch {
+      setError(true);
+    }
+  }
+
+  async function removeReq(r: AReq) {
+    if (!confirm(tr.confirmRemove)) return;
+    try {
+      await api(`/api/v1/admin/requests/${r.id}`, { method: "DELETE" });
+      loadReqs();
+    } catch {
+      setError(true);
+    }
+  }
+
+  if (role === undefined) return <p>{tr.loading}</p>;
+  if (role !== "ROLE_ADMIN") return <p className="text-red-600">{tr.noAccess}</p>;
+
+  const tabBtn = (id: "stats" | "users" | "reqs", label: string) => (
+    <button
+      onClick={() => setTab(id)}
+      className={`rounded-xl px-4 py-2 text-sm font-semibold ${
+        tab === id
+          ? "bg-red-600 text-white"
+          : "border border-gray-300 hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-900"
+      }`}
+    >
+      {label}
+    </button>
+  );
+
+  return (
+    <div className="space-y-6">
+      <h1 className="text-2xl font-bold">{tr.title}</h1>
+      <div className="flex flex-wrap gap-2">
+        {tabBtn("stats", tr.tabStats)}
+        {tabBtn("users", tr.tabUsers)}
+        {tabBtn("reqs", tr.tabReqs)}
+      </div>
+
+      {error && <p className="text-red-600">{tr.error}</p>}
+
+      {tab === "stats" &&
+        (stats ? (
+          <div className="space-y-6">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+              {[
+                [tr.users, stats.users],
+                [tr.donors, stats.donors],
+                [tr.verified, stats.verifiedDonors],
+                [tr.open, stats.openRequests],
+                [tr.fulfilled, stats.fulfilledRequests],
+                [tr.total, stats.totalRequests],
+              ].map(([label, n]) => (
+                <div key={label} className="rounded-2xl border border-red-100 p-4 dark:border-red-950">
+                  <div className="text-3xl font-bold text-red-600">{n}</div>
+                  <div className="text-sm text-gray-600 dark:text-gray-400">{label}</div>
+                </div>
+              ))}
+            </div>
+            <div>
+              <h2 className="mb-2 font-semibold">{tr.byGroup}</h2>
+              <div className="grid grid-cols-4 gap-3 sm:grid-cols-8">
+                {stats.byGroup.map((g) => (
+                  <div
+                    key={g.group}
+                    className="rounded-2xl border border-gray-200 p-3 text-center dark:border-gray-800"
+                  >
+                    <div className="font-bold text-red-600">{groupLabel(g.group)}</div>
+                    <div className="text-lg">{g.count}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        ) : (
+          !error && <p>{tr.loading}</p>
+        ))}
+
+      {tab === "users" && (
+        <div className="space-y-3">
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              loadUsers(q);
+            }}
+            className="flex gap-2"
+          >
+            <input
+              className={`${field} flex-1`}
+              placeholder={tr.search}
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+            />
+            <button className="rounded-xl bg-red-600 px-4 py-2 font-semibold text-white hover:bg-red-700">
+              {tr.go}
+            </button>
+          </form>
+          {!users && !error && <p>{tr.loading}</p>}
+          {users?.length === 0 && <p>{tr.none}</p>}
+          {users?.map((u) => (
+            <div
+              key={u.id}
+              className={`rounded-2xl border p-4 ${
+                u.enabled
+                  ? "border-gray-200 dark:border-gray-800"
+                  : "border-gray-300 bg-gray-100 opacity-70 dark:border-gray-700 dark:bg-gray-900"
+              }`}
+            >
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div className="space-y-0.5 text-sm">
+                  <div className="text-base font-semibold">
+                    {u.fullName}{" "}
+                    {u.verified && <span title="Verified">✅</span>}{" "}
+                    {u.role === "ROLE_ADMIN" && (
+                      <span className="rounded-full bg-red-600 px-2 py-0.5 text-xs font-bold text-white">
+                        {tr.admin}
+                      </span>
+                    )}{" "}
+                    {!u.enabled && (
+                      <span className="rounded-full bg-gray-700 px-2 py-0.5 text-xs font-bold text-white">
+                        {tr.banned}
+                      </span>
+                    )}
+                  </div>
+                  <div className="text-gray-600 dark:text-gray-400">
+                    {u.email} · {u.phone ?? "—"}
+                  </div>
+                  <div className="text-xs text-gray-500">{formatTime(u.createdAt, lang)}</div>
+                </div>
+                {u.role !== "ROLE_ADMIN" && (
+                  <div className="flex flex-wrap gap-2">
+                    {u.hasProfile && (
+                      <button
+                        onClick={() => toggleVerify(u)}
+                        className="rounded-lg border border-green-300 px-3 py-1.5 text-sm text-green-700 hover:bg-green-50 dark:border-green-800 dark:text-green-400 dark:hover:bg-green-950"
+                      >
+                        {u.verified ? tr.unverify : tr.verify}
+                      </button>
+                    )}
+                    <button
+                      onClick={() => toggleBan(u)}
+                      className={`rounded-lg px-3 py-1.5 text-sm font-semibold ${
+                        u.enabled
+                          ? "border border-red-300 text-red-600 hover:bg-red-50 dark:border-red-900 dark:hover:bg-red-950"
+                          : "bg-green-600 text-white hover:bg-green-700"
+                      }`}
+                    >
+                      {u.enabled ? tr.ban : tr.unban}
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {tab === "reqs" && (
+        <div className="space-y-3">
+          {!reqs && !error && <p>{tr.loading}</p>}
+          {reqs?.length === 0 && <p>{tr.none}</p>}
+          {reqs?.map((r) => (
+            <div key={r.id} className="rounded-2xl border border-gray-200 p-4 dark:border-gray-800">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div className="flex items-start gap-3">
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-red-100 font-bold text-red-600 dark:bg-red-950">
+                    {groupLabel(r.bloodGroup)}
+                  </div>
+                  <div className="space-y-0.5 text-sm">
+                    <div className="text-base font-semibold">
+                      {r.patientName}{" "}
+                      <span className="rounded-full bg-gray-200 px-2 py-0.5 text-xs dark:bg-gray-800">
+                        {r.status}
+                      </span>
+                    </div>
+                    <div>
+                      🏥 {r.hospitalName}
+                      {r.districtName && ` · ${r.districtName}`}
+                    </div>
+                    <div className="text-gray-600 dark:text-gray-400">
+                      {tr.by}: {r.requesterName} ({r.requesterEmail})
+                    </div>
+                    <div className="text-xs text-gray-500">{formatTime(r.createdAt, lang)}</div>
+                  </div>
+                </div>
+                {r.status !== "REMOVED_BY_ADMIN" && (
+                  <button
+                    onClick={() => removeReq(r)}
+                    className="rounded-lg border border-red-300 px-3 py-1.5 text-sm text-red-600 hover:bg-red-50 dark:border-red-900 dark:hover:bg-red-950"
+                  >
+                    🗑️ {tr.remove}
+                  </button>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
