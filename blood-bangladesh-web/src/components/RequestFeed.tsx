@@ -49,6 +49,7 @@ export default function RequestFeed({
   const [items, setItems] = useState<RequestItem[] | null>(null);
   const [error, setError] = useState(false);
   const [notice, setNotice] = useState<Record<string, string>>({});
+  const [done, setDone] = useState<Record<string, boolean>>({});
 
   const load = useCallback(async () => {
     const p = new URLSearchParams({ limit: String(limit) });
@@ -76,18 +77,21 @@ export default function RequestFeed({
     try {
       await api<{ ok: boolean }>(`/api/v1/requests/${id}/respond`, { method: "POST" });
       msg = t("respondOk");
+      setDone((d) => ({ ...d, [id]: true }));
     } catch (e) {
       const s = (e as { status?: number }).status;
       if (s === 401) {
         router.push("/login");
         return;
       }
-      msg =
-        s === 409
-          ? t("respondDup")
-          : s === 400
-            ? t("respondNeedProfile") + " / " + t("respondOwn")
-            : t("saveError");
+      if (s === 409) {
+        msg = t("respondDup");
+        setDone((d) => ({ ...d, [id]: true }));
+      } else if (s === 400) {
+        msg = t("respondNeedProfile") + " / " + t("respondOwn");
+      } else {
+        msg = t("saveError");
+      }
     }
     setNotice((n) => ({ ...n, [id]: msg }));
   }
@@ -140,9 +144,14 @@ export default function RequestFeed({
             <span className="text-sm text-green-700 dark:text-green-400">{notice[r.id]}</span>
             <button
               onClick={() => respond(r.id)}
-              className="rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700"
+              disabled={done[r.id]}
+              className={`rounded-xl px-4 py-2 text-sm font-semibold text-white transition ${
+                done[r.id]
+                  ? "cursor-default bg-green-600"
+                  : "bg-red-600 hover:bg-red-700"
+              }`}
             >
-              🩸 {t("canDonate")}
+              {done[r.id] ? "✅" : "🩸"} {t("canDonate")}
             </button>
           </div>
         </div>
