@@ -68,6 +68,13 @@ export default function RequestFeed({
     return () => clearInterval(id);
   }, [load]);
 
+    useEffect(() => {
+    if (!getToken()) return;
+    api<string[]>("/api/v1/users/me/responded-requests")
+      .then((ids) => setDone(Object.fromEntries(ids.map((id) => [id, true]))))
+      .catch(() => {});
+  }, []);
+
   async function respond(id: string) {
     if (!getToken()) {
       router.push("/login");
