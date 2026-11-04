@@ -7,6 +7,7 @@ export type Lang = "bn" | "en";
 const en = {
   brand: "Blood Bangladesh",
   navFind: "Find Donors",
+  navProfile: "My Profile",
   navLogin: "Login",
   navRegister: "Register",
   navLogout: "Logout",
@@ -69,6 +70,28 @@ const en = {
     "Invalid details. Phone must be 11 digits starting with 01, password at least 8 characters.",
   haveAccount: "Already have an account?",
   loginLink: "Login",
+
+  profTitle: "👤 My Donor Profile",
+  profLoading: "Loading...",
+  profLoadError: "Could not load your profile. Please check that the server is running.",
+  profCreateHint: "You have not created a donor profile yet. Fill in the form below to appear in search results.",
+  interestLabel: "Available to donate (Interest)",
+  interestOn: "ON: your profile is visible in search results.",
+  interestOff: "OFF: your profile is hidden from all searches.",
+  interestNeedProfile: "Save your profile first to use this switch.",
+  choose: "Select",
+  addressDetail: "Address details (optional)",
+  lastDonationOpt: "Last donation date (optional)",
+  save: "Save profile",
+  saving: "Saving...",
+  saved: "Profile saved.",
+  saveError: "Could not save. Please check your details.",
+  futureDate: "Last donation date cannot be in the future.",
+  eligibleYes: "You are eligible to donate now.",
+  eligibleNo: "You donated recently. You will show as Unavailable until 90 days have passed.",
+  totalDonations: "Total donations",
+  adminVerified: "Verified by admin",
+  notVerified: "Not verified yet",
 };
 
 type Key = keyof typeof en;
@@ -76,6 +99,7 @@ type Key = keyof typeof en;
 const bn: Record<Key, string> = {
   brand: "ব্লাড বাংলাদেশ",
   navFind: "রক্তদাতা খুঁজুন",
+  navProfile: "আমার প্রোফাইল",
   navLogin: "লগইন",
   navRegister: "রেজিস্টার",
   navLogout: "লগআউট",
@@ -138,6 +162,28 @@ const bn: Record<Key, string> = {
     "তথ্য সঠিক নয়। ফোন নম্বর 01 দিয়ে শুরু ১১ অঙ্কের হতে হবে, পাসওয়ার্ড কমপক্ষে ৮ অক্ষর।",
   haveAccount: "আগেই অ্যাকাউন্ট আছে?",
   loginLink: "লগইন করুন",
+
+  profTitle: "👤 আমার রক্তদাতা প্রোফাইল",
+  profLoading: "লোড হচ্ছে...",
+  profLoadError: "প্রোফাইল লোড করা যায়নি। সার্ভার চালু আছে কিনা দেখুন।",
+  profCreateHint: "আপনি এখনো রক্তদাতা প্রোফাইল তৈরি করেননি। সার্চে দেখা যেতে নিচের ফর্ম পূরণ করুন।",
+  interestLabel: "রক্ত দিতে প্রস্তুত (Interest)",
+  interestOn: "চালু: আপনার প্রোফাইল সার্চ ফলাফলে দেখা যাবে।",
+  interestOff: "বন্ধ: আপনার প্রোফাইল সব সার্চ থেকে লুকানো থাকবে।",
+  interestNeedProfile: "এই সুইচ ব্যবহারের আগে প্রোফাইল সেভ করুন।",
+  choose: "বেছে নিন",
+  addressDetail: "ঠিকানার বিবরণ (ঐচ্ছিক)",
+  lastDonationOpt: "শেষ রক্তদানের তারিখ (ঐচ্ছিক)",
+  save: "প্রোফাইল সেভ করুন",
+  saving: "সেভ হচ্ছে...",
+  saved: "প্রোফাইল সেভ হয়েছে।",
+  saveError: "সেভ করা যায়নি। তথ্য ঠিক আছে কিনা দেখুন।",
+  futureDate: "শেষ রক্তদানের তারিখ ভবিষ্যতের হতে পারে না।",
+  eligibleYes: "আপনি এখন রক্ত দিতে পারবেন।",
+  eligibleNo: "আপনি সম্প্রতি রক্ত দিয়েছেন। ৯০ দিন না যাওয়া পর্যন্ত সার্চে \"অনুপলব্ধ\" দেখাবে।",
+  totalDonations: "মোট রক্তদান",
+  adminVerified: "অ্যাডমিন ভেরিফাইড",
+  notVerified: "এখনো ভেরিফাই হয়নি",
 };
 
 const dict = { en, bn };

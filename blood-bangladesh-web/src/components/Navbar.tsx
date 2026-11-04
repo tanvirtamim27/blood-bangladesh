@@ -32,6 +32,9 @@ export default function Navbar() {
           </Link>
           {name ? (
             <>
+              <Link href="/profile" className="hover:text-red-600">
+                {t("navProfile")}
+              </Link>
               <span className="hidden text-gray-600 sm:inline dark:text-gray-300">{name}</span>
               <button
                 onClick={clearAuth}
