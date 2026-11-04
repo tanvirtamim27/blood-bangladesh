@@ -1,0 +1,74 @@
+"use client";
+
+import Link from "next/link";
+import { useEffect, useState } from "react";
+import { useTheme } from "next-themes";
+import { clearAuth } from "@/lib/api";
+import { useLang } from "@/lib/i18n";
+
+export default function Navbar() {
+  const { theme, setTheme } = useTheme();
+  const { lang, setLang, t } = useLang();
+  const [mounted, setMounted] = useState(false);
+  const [name, setName] = useState<string | null>(null);
+
+  useEffect(() => {
+    setMounted(true);
+    const read = () => setName(localStorage.getItem("bb_name"));
+    read();
+    window.addEventListener("bb-auth", read);
+    return () => window.removeEventListener("bb-auth", read);
+  }, []);
+
+  return (
+    <header className="sticky top-0 z-10 border-b border-red-100 bg-white/90 backdrop-blur dark:border-red-950 dark:bg-[#0f0f12]/90">
+      <nav className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
+        <Link href="/" className="flex items-center gap-2 text-lg font-bold text-red-600">
+          <span>🩸</span> {t("brand")}
+        </Link>
+        <div className="flex items-center gap-3 text-sm">
+          <Link href="/search" className="hover:text-red-600">
+            {t("navFind")}
+          </Link>
+          {name ? (
+            <>
+              <span className="hidden text-gray-600 sm:inline dark:text-gray-300">{name}</span>
+              <button
+                onClick={clearAuth}
+                className="rounded-lg border border-red-200 px-3 py-1.5 text-red-600 hover:bg-red-50 dark:border-red-900 dark:hover:bg-red-950"
+              >
+                {t("navLogout")}
+              </button>
+            </>
+          ) : (
+            <>
+              <Link href="/login" className="hover:text-red-600">
+                {t("navLogin")}
+              </Link>
+              <Link
+                href="/register"
+                className="rounded-lg bg-red-600 px-3 py-1.5 text-white hover:bg-red-700"
+              >
+                {t("navRegister")}
+              </Link>
+            </>
+          )}
+          <button
+            aria-label="Language"
+            onClick={() => setLang(lang === "bn" ? "en" : "bn")}
+            className="rounded-lg border border-gray-200 px-2.5 py-1.5 font-semibold dark:border-gray-700"
+          >
+            {lang === "bn" ? "EN" : "বাংলা"}
+          </button>
+          <button
+            aria-label={t("theme")}
+            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+            className="rounded-lg border border-gray-200 px-2 py-1.5 dark:border-gray-700"
+          >
+            {mounted ? (theme === "dark" ? "☀️" : "🌙") : "🌙"}
+          </button>
+        </div>
+      </nav>
+    </header>
+  );
+}
