@@ -19,3 +19,5 @@ app:
   jwt:
     secret: change-this-to-a-long-random-string-at-least-32-chars-long
     access-token-minutes: 15
+  google:
+    client-id: 217359752514-0esnkckbmjcht3cmh3vacfr7kldmadtj.apps.googleusercontent.com

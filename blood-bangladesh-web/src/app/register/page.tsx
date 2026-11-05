@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { saveAuth } from "@/lib/api";
 import { useLang } from "@/lib/i18n";
+   import GoogleButton from "@/components/GoogleButton";
 
 const field =
   "w-full rounded-xl border border-gray-300 bg-white px-3 py-2 dark:border-gray-700 dark:bg-gray-900";
