@@ -61,6 +61,9 @@ export default function Navbar() {
               <Link href="/profile" className="hover:text-red-600">
                 {t("navProfile")}
               </Link>
+                            <Link href="/donations" className="hover:text-red-600">
+                {lang === "bn" ? "রক্তদান" : "Donations"}
+              </Link>
               {isAdmin && (
                 <Link href="/admin" className="font-semibold text-red-600 hover:underline">
                   🛡️ Admin
