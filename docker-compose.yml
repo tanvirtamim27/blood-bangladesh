@@ -4,9 +4,9 @@
     container_name: bb-postgres
     restart: unless-stopped
     environment:
-      POSTGRES_DB: blood_bd
-      POSTGRES_USER: bb_user
-      POSTGRES_PASSWORD: bb_pass
+      POSTGRES_DB: ${DB_NAME:-blood_bd}
+      POSTGRES_USER: ${DB_USER:-bb_user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-bb_pass}
     ports:
       - "5432:5432"
     volumes:

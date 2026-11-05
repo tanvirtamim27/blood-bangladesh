@@ -29,6 +29,10 @@ public class SecurityConfig {
 
     @Bean
     SecretKey jwtSecretKey(@Value("${app.jwt.secret}") String secret) {
+        if (secret == null || secret.length() < 32) {
+            throw new IllegalStateException(
+                    "JWT_SECRET is missing or shorter than 32 characters. Set it in your environment.");
+        }
         return new SecretKeySpec(secret.getBytes(StandardCharsets.UTF_8), "HmacSHA256");
     }
 
