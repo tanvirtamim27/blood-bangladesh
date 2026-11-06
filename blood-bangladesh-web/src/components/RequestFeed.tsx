@@ -68,7 +68,7 @@ export default function RequestFeed({
     return () => clearInterval(id);
   }, [load]);
 
-    useEffect(() => {
+  useEffect(() => {
     if (!getToken()) return;
     api<string[]>("/api/v1/users/me/responded-requests")
       .then((ids) => setDone(Object.fromEntries(ids.map((id) => [id, true]))))
@@ -108,11 +108,11 @@ export default function RequestFeed({
   if (items.length === 0) return <p className="text-gray-600 dark:text-gray-400">{t("reqNone")}</p>;
 
   return (
-    <div className="space-y-3">
+    <div className="grid gap-4 lg:grid-cols-2">
       {items.map((r) => (
         <div
           key={r.id}
-          className={`rounded-2xl border p-4 ${
+          className={`rounded-2xl border p-4 transition hover:-translate-y-0.5 hover:shadow-lg ${
             r.urgent
               ? "border-red-300 bg-red-50/50 dark:border-red-900 dark:bg-red-950/20"
               : "border-gray-200 dark:border-gray-800"
@@ -163,7 +163,7 @@ export default function RequestFeed({
           </div>
         </div>
       ))}
-      <p className="text-center text-xs text-gray-500">{t("reqLive")}</p>
+      <p className="text-center text-xs text-gray-500 lg:col-span-2">{t("reqLive")}</p>
     </div>
   );
 }
