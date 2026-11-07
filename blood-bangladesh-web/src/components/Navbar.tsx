@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useTheme } from "next-themes";
 import { api, clearAuth, getRole } from "@/lib/api";
@@ -11,12 +11,19 @@ export default function Navbar() {
   const { theme, setTheme } = useTheme();
   const { lang, setLang, t } = useLang();
   const pathname = usePathname();
+  const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const [name, setName] = useState<string | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [unread, setUnread] = useState(0);
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+
+  function logout() {
+    clearAuth();
+    setOpen(false);
+    router.push("/");
+  }
 
   useEffect(() => {
     setMounted(true);
@@ -124,7 +131,7 @@ export default function Navbar() {
                 {name.charAt(0).toUpperCase()}
               </span>
               <button
-                onClick={clearAuth}
+                onClick={logout}
                 className="hidden rounded-full border border-red-200 px-3 py-1.5 text-sm text-red-600 hover:bg-red-50 sm:block dark:border-red-900 dark:hover:bg-red-950"
               >
                 {t("navLogout")}
@@ -177,7 +184,7 @@ export default function Navbar() {
             ))}
             {name ? (
               <button
-                onClick={clearAuth}
+                onClick={logout}
                 className="mt-2 rounded-full border border-red-200 px-3 py-2.5 text-sm text-red-600 dark:border-red-900"
               >
                 {t("navLogout")} ({name})
