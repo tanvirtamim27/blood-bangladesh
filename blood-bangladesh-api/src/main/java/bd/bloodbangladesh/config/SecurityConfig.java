@@ -1,7 +1,9 @@
 package bd.bloodbangladesh.config;
 
+import bd.bloodbangladesh.security.EnabledUserFilter;
 import com.nimbusds.jose.jwk.source.ImmutableSecret;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -17,6 +19,7 @@ import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
+import org.springframework.security.oauth2.server.resource.web.authentication.BearerTokenAuthenticationFilter;
 import org.springframework.security.web.SecurityFilterChain;
 
 import javax.crypto.SecretKey;
@@ -61,8 +64,17 @@ public class SecurityConfig {
         return converter;
     }
 
+    // Spring Boot যেন ফিল্টারটি আলাদাভাবে (সিকিউরিটি চেইনের বাইরে) না চালায়
     @Bean
-    SecurityFilterChain filterChain(HttpSecurity http, JwtAuthenticationConverter converter) throws Exception {
+    FilterRegistrationBean<EnabledUserFilter> enabledUserFilterRegistration(EnabledUserFilter filter) {
+        FilterRegistrationBean<EnabledUserFilter> reg = new FilterRegistrationBean<>(filter);
+        reg.setEnabled(false);
+        return reg;
+    }
+
+    @Bean
+    SecurityFilterChain filterChain(HttpSecurity http, JwtAuthenticationConverter converter,
+                                    EnabledUserFilter enabledUserFilter) throws Exception {
         http
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
@@ -72,7 +84,8 @@ public class SecurityConfig {
                                 "/api/v1/requests/**", "/api/v1/blog/**").permitAll()
                         .requestMatchers("/api/v1/admin/**").hasAuthority("ROLE_ADMIN")
                         .anyRequest().authenticated())
-                .oauth2ResourceServer(o -> o.jwt(j -> j.jwtAuthenticationConverter(converter)));
+                .oauth2ResourceServer(o -> o.jwt(j -> j.jwtAuthenticationConverter(converter)))
+                .addFilterAfter(enabledUserFilter, BearerTokenAuthenticationFilter.class);
         return http.build();
     }
 }

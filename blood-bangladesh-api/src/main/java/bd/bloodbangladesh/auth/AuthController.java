@@ -1,6 +1,7 @@
 package bd.bloodbangladesh.auth;
 
 import bd.bloodbangladesh.auth.AuthDtos.*;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
@@ -22,7 +23,7 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public AuthResponse login(@Valid @RequestBody LoginRequest req) {
-        return service.login(req);
+    public AuthResponse login(@Valid @RequestBody LoginRequest req, HttpServletRequest http) {
+        return service.login(req, http.getRemoteAddr());
     }
 }

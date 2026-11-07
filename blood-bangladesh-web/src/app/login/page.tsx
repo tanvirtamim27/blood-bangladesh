@@ -28,7 +28,8 @@ export default function LoginPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
       });
-      if (res.status === 401) setError(t("badLogin"));
+      if (res.status === 429) setError(t("tooMany"));
+      else if (res.status === 401) setError(t("badLogin"));
       else if (!res.ok) setError(t("badData"));
       else {
         const data = await res.json();
