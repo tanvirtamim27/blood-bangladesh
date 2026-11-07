@@ -1,5 +1,6 @@
 package bd.bloodbangladesh.request;
 
+import bd.bloodbangladesh.notification.ResponseMailer;
 import bd.bloodbangladesh.request.RequestDtos.*;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -16,9 +17,11 @@ import java.util.UUID;
 public class RequestController {
 
     private final RequestService service;
+    private final ResponseMailer mailer;
 
-    public RequestController(RequestService service) {
+    public RequestController(RequestService service, ResponseMailer mailer) {
         this.service = service;
+        this.mailer = mailer;
     }
 
     @GetMapping("/requests")
@@ -50,6 +53,9 @@ public class RequestController {
 
     @PostMapping("/requests/{id}/respond")
     public Ok respond(@AuthenticationPrincipal Jwt jwt, @PathVariable String id) {
-        return service.respond(UUID.fromString(jwt.getSubject()), id);
+        UUID uid = UUID.fromString(jwt.getSubject());
+        Ok ok = service.respond(uid, id);
+        mailer.donorResponded(uid, id);
+        return ok;
     }
 }

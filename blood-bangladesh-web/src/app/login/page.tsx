@@ -12,7 +12,7 @@ const field =
 
 export default function LoginPage() {
   const router = useRouter();
-  const { t } = useLang();
+  const { lang, t } = useLang();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -57,6 +57,11 @@ export default function LoginPage() {
         {t("password")}
         <input className={field} type="password" required value={password} onChange={(e) => setPassword(e.target.value)} />
       </label>
+      <div className="text-right text-sm">
+        <Link href="/forgot-password" className="text-red-600 hover:underline">
+          {lang === "bn" ? "পাসওয়ার্ড ভুলে গেছেন?" : "Forgot password?"}
+        </Link>
+      </div>
       {error && <p className="text-sm text-red-600">{error}</p>}
       <button
         disabled={loading}

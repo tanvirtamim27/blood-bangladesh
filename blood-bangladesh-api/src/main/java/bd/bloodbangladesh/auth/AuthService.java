@@ -16,16 +16,18 @@ public class AuthService {
     private final PasswordEncoder encoder;
     private final JwtService jwt;
     private final LoginRateLimiter limiter;
+    private final RefreshTokenService refreshTokens;
 
     public AuthService(UserRepository users, PasswordEncoder encoder, JwtService jwt,
-                       LoginRateLimiter limiter) {
+                       LoginRateLimiter limiter, RefreshTokenService refreshTokens) {
         this.users = users;
         this.encoder = encoder;
         this.jwt = jwt;
         this.limiter = limiter;
+        this.refreshTokens = refreshTokens;
     }
 
-    public AuthResponse register(RegisterRequest req) {
+    public Session register(RegisterRequest req) {
         String email = req.email().trim().toLowerCase();
         String phone = normalizePhone(req.phone());
         if (users.existsByEmail(email)) {
@@ -40,10 +42,10 @@ public class AuthService {
         u.setPhone(phone);
         u.setPasswordHash(encoder.encode(req.password()));
         users.save(u);
-        return toResponse(u);
+        return session(u);
     }
 
-    public AuthResponse login(LoginRequest req, String ip) {
+    public Session login(LoginRequest req, String ip) {
         String email = req.email().trim().toLowerCase();
         String emailKey = "email:" + email;
         String ipKey = "ip:" + ip;
@@ -61,7 +63,28 @@ public class AuthService {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid email or password");
         }
         limiter.reset(emailKey);
-        return toResponse(u);
+        return session(u);
+    }
+
+    public Session refresh(String rawToken) {
+        if (rawToken == null || rawToken.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "No refresh token");
+        }
+        RefreshTokenService.Rotated r = refreshTokens.rotate(rawToken);
+        User u = users.findById(r.userId()).filter(User::isEnabled).orElse(null);
+        if (u == null) {
+            refreshTokens.revokeAll(r.userId());
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Account disabled");
+        }
+        return new Session(toResponse(u), r.newToken());
+    }
+
+    public void logout(String rawToken) {
+        refreshTokens.revoke(rawToken);
+    }
+
+    private Session session(User u) {
+        return new Session(toResponse(u), refreshTokens.issue(u.getId()));
     }
 
     private AuthResponse toResponse(User u) {

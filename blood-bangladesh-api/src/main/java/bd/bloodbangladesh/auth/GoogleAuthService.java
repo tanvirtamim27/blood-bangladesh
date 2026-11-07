@@ -1,6 +1,7 @@
 package bd.bloodbangladesh.auth;
 
 import bd.bloodbangladesh.auth.AuthDtos.AuthResponse;
+import bd.bloodbangladesh.auth.AuthDtos.Session;
 import bd.bloodbangladesh.security.JwtService;
 import bd.bloodbangladesh.user.User;
 import bd.bloodbangladesh.user.UserRepository;
@@ -24,14 +25,17 @@ public class GoogleAuthService {
     private final UserRepository users;
     private final JdbcClient jdbc;
     private final JwtService jwt;
+    private final RefreshTokenService refreshTokens;
     private final String clientId;
     private final NimbusJwtDecoder decoder;
 
     public GoogleAuthService(UserRepository users, JdbcClient jdbc, JwtService jwt,
+                             RefreshTokenService refreshTokens,
                              @Value("${app.google.client-id:}") String clientId) {
         this.users = users;
         this.jdbc = jdbc;
         this.jwt = jwt;
+        this.refreshTokens = refreshTokens;
         this.clientId = clientId;
 
         NimbusJwtDecoder d = NimbusJwtDecoder
@@ -50,7 +54,7 @@ public class GoogleAuthService {
         this.decoder = d;
     }
 
-    public AuthResponse login(String idToken) {
+    public Session login(String idToken) {
         if (clientId == null || clientId.isBlank() || clientId.startsWith("PASTE")) {
             throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "Google login is not configured");
         }
@@ -95,7 +99,8 @@ public class GoogleAuthService {
                 .param("id", u.getId())
                 .update();
 
-        return new AuthResponse(jwt.createAccessToken(u), "Bearer", jwt.expiresInSeconds(),
+        AuthResponse body = new AuthResponse(jwt.createAccessToken(u), "Bearer", jwt.expiresInSeconds(),
                 u.getFullName(), u.getRole());
+        return new Session(body, refreshTokens.issue(u.getId()));
     }
 }

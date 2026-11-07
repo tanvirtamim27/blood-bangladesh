@@ -42,10 +42,36 @@ export function saveAuth(token: string, name: string) {
   window.dispatchEvent(new Event("bb-auth"));
 }
 
+// Clears local login and also revokes the refresh cookie on the server.
 export function clearAuth() {
   localStorage.removeItem("bb_token");
   localStorage.removeItem("bb_name");
   window.dispatchEvent(new Event("bb-auth"));
+  fetch("/api/v1/auth/logout", { method: "POST" }).catch(() => {});
+}
+
+// Only one refresh request at a time, even if many API calls fail together.
+let refreshing: Promise<boolean> | null = null;
+
+async function doRefresh(): Promise<boolean> {
+  try {
+    const res = await fetch("/api/v1/auth/refresh", { method: "POST" });
+    if (!res.ok) return false;
+    const data = await res.json();
+    saveAuth(data.accessToken, data.fullName);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function refreshToken(): Promise<boolean> {
+  if (!refreshing) {
+    refreshing = doRefresh().finally(() => {
+      refreshing = null;
+    });
+  }
+  return refreshing;
 }
 
 async function send(path: string, init: RequestInit, useToken: boolean) {
@@ -57,10 +83,14 @@ async function send(path: string, init: RequestInit, useToken: boolean) {
 
 export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
   let res = await send(path, init, true);
-  // If the saved token has expired, clear it and retry without a token
   if (res.status === 401 && getToken()) {
-    clearAuth();
-    res = await send(path, init, false);
+    // Access token expired: try to get a new one with the refresh cookie
+    if (await refreshToken()) {
+      res = await send(path, init, true);
+    } else {
+      clearAuth();
+      res = await send(path, init, false);
+    }
   }
   if (!res.ok) throw { status: res.status } as ApiError;
   return res.json() as Promise<T>;
