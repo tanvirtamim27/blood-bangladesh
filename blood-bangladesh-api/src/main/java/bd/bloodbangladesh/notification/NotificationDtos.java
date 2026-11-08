@@ -4,9 +4,10 @@ public class NotificationDtos {
 
     public record NotificationItem(
             String id, String type,
-            String responderName, String responderPhone,
+            String otherName, String otherPhone,
+            String message, String requestId,
             String patientName, String bloodGroup, String hospitalName,
-            boolean read, String createdAt) {}
+            boolean confirmed, boolean read, String createdAt) {}
 
     public record CountResponse(long count) {}
 

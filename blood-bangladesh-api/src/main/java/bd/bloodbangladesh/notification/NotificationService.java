@@ -22,9 +22,16 @@ public class NotificationService {
     public List<NotificationItem> list(UUID userId) {
         return jdbc.sql("""
                 SELECT n.id::text AS id, n.type,
-                       n.payload->>'responderName'  AS responder_name,
-                       n.payload->>'responderPhone' AS responder_phone,
+                       COALESCE(n.payload->>'responderName', n.payload->>'senderName',
+                                n.payload->>'requesterName') AS other_name,
+                       COALESCE(n.payload->>'responderPhone', n.payload->>'senderPhone') AS other_phone,
+                       n.payload->>'body' AS message,
+                       n.payload->>'requestId' AS request_id,
                        r.patient_name, r.blood_group, r.hospital_name,
+                       (n.type = 'DONOR_RESPONSE' AND EXISTS (
+                            SELECT 1 FROM donation_history h
+                            WHERE h.request_id::text = n.payload->>'requestId'
+                              AND h.donor_id::text = n.payload->>'responderId')) AS confirmed,
                        n.is_read, n.created_at
                 FROM notifications n
                 LEFT JOIN blood_requests r ON r.id::text = n.payload->>'requestId'
@@ -36,11 +43,14 @@ public class NotificationService {
                 .query((rs, i) -> new NotificationItem(
                         rs.getString("id"),
                         rs.getString("type"),
-                        rs.getString("responder_name"),
-                        rs.getString("responder_phone"),
+                        rs.getString("other_name"),
+                        rs.getString("other_phone"),
+                        rs.getString("message"),
+                        rs.getString("request_id"),
                         rs.getString("patient_name"),
                         rs.getString("blood_group"),
                         rs.getString("hospital_name"),
+                        rs.getBoolean("confirmed"),
                         rs.getBoolean("is_read"),
                         rs.getObject("created_at", OffsetDateTime.class).toString()))
                 .list();
