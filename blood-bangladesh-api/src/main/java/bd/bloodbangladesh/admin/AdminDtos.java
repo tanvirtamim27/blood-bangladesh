@@ -23,5 +23,7 @@ public class AdminDtos {
 
     public record VerifiedRequest(boolean verified) {}
 
+    public record AdminRoleRequest(boolean admin) {}
+
     public record Ok(boolean ok) {}
 }

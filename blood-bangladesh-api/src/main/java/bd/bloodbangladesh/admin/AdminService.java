@@ -1,9 +1,12 @@
 package bd.bloodbangladesh.admin;
 
 import bd.bloodbangladesh.admin.AdminDtos.*;
+import bd.bloodbangladesh.auth.RefreshTokenService;
+import bd.bloodbangladesh.security.EnabledUserFilter;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.OffsetDateTime;
@@ -14,9 +17,13 @@ import java.util.UUID;
 public class AdminService {
 
     private final JdbcClient jdbc;
+    private final RefreshTokenService refreshTokens;
+    private final EnabledUserFilter userFilter;
 
-    public AdminService(JdbcClient jdbc) {
+    public AdminService(JdbcClient jdbc, RefreshTokenService refreshTokens, EnabledUserFilter userFilter) {
         this.jdbc = jdbc;
+        this.refreshTokens = refreshTokens;
+        this.userFilter = userFilter;
     }
 
     private long count(String sql) {
@@ -51,7 +58,7 @@ public class AdminService {
                 LEFT JOIN donor_profiles d ON d.id = u.id
                 WHERE (CAST(:q AS VARCHAR) IS NULL
                        OR u.full_name ILIKE :q OR u.email ILIKE :q OR u.phone ILIKE :q)
-                ORDER BY u.created_at DESC
+                ORDER BY (u.role = 'ROLE_ADMIN') DESC, u.created_at DESC
                 LIMIT 50
                 """)
                 .param("q", pattern)
@@ -69,10 +76,56 @@ public class AdminService {
                 .param("id", uid).query(String.class).optional()
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
         if ("ROLE_ADMIN".equals(role)) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Cannot change an admin account");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Remove admin role first");
         }
         jdbc.sql("UPDATE users SET enabled = :e, updated_at = now() WHERE id = CAST(:id AS uuid)")
                 .param("e", enabled).param("id", uid).update();
+        userFilter.evict(uid);
+        if (!enabled) refreshTokens.revokeAll(UUID.fromString(uid));
+        return new Ok(true);
+    }
+
+    // admin বানানো বা সরানো
+    @Transactional
+    public Ok setAdmin(UUID actorId, String id, boolean makeAdmin) {
+        String uid = parseId(id);
+
+        // একসাথে দুজন admin বদলালে শেষ admin সরার ঝুঁকি এড়াতে সারি লক
+        jdbc.sql("SELECT id FROM users WHERE role = 'ROLE_ADMIN' FOR UPDATE").query(String.class).list();
+
+        record Target(String role, boolean enabled) {}
+        Target t = jdbc.sql("SELECT role, enabled FROM users WHERE id = CAST(:id AS uuid)")
+                .param("id", uid)
+                .query((rs, i) -> new Target(rs.getString("role"), rs.getBoolean("enabled")))
+                .optional()
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+
+        boolean isAdmin = "ROLE_ADMIN".equals(t.role());
+        if (makeAdmin == isAdmin) {
+            return new Ok(true);
+        }
+
+        if (makeAdmin) {
+            if (!t.enabled()) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Cannot make a banned user admin");
+            }
+        } else {
+            if (actorId.toString().equals(uid)) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "You cannot remove your own admin role");
+            }
+            Long admins = jdbc.sql("SELECT count(*) FROM users WHERE role = 'ROLE_ADMIN' AND enabled = TRUE")
+                    .query(Long.class).single();
+            if (admins <= 1) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT, "Cannot remove the last admin");
+            }
+        }
+
+        jdbc.sql("UPDATE users SET role = :r, updated_at = now() WHERE id = CAST(:id AS uuid)")
+                .param("r", makeAdmin ? "ROLE_ADMIN" : "ROLE_USER")
+                .param("id", uid).update();
+
+        userFilter.evict(uid);
+        refreshTokens.revokeAll(UUID.fromString(uid));
         return new Ok(true);
     }
 

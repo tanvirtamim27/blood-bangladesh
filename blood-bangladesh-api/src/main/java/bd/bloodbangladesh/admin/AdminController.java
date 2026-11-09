@@ -1,9 +1,12 @@
 package bd.bloodbangladesh.admin;
 
 import bd.bloodbangladesh.admin.AdminDtos.*;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/admin")
@@ -28,6 +31,12 @@ public class AdminController {
     @PatchMapping("/users/{id}/enabled")
     public Ok enabled(@PathVariable String id, @RequestBody EnabledRequest req) {
         return service.setEnabled(id, req.enabled());
+    }
+
+    @PatchMapping("/users/{id}/admin")
+    public Ok admin(@AuthenticationPrincipal Jwt jwt, @PathVariable String id,
+                    @RequestBody AdminRoleRequest req) {
+        return service.setAdmin(UUID.fromString(jwt.getSubject()), id, req.admin());
     }
 
     @PatchMapping("/donors/{id}/verified")
