@@ -5,6 +5,7 @@ import bd.bloodbangladesh.security.JwtService;
 import bd.bloodbangladesh.user.User;
 import bd.bloodbangladesh.user.UserRepository;
 import org.springframework.http.HttpStatus;
+import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
@@ -17,17 +18,22 @@ public class AuthService {
     private final JwtService jwt;
     private final LoginRateLimiter limiter;
     private final RefreshTokenService refreshTokens;
+    private final EmailVerificationService verification;
+    private final JdbcClient jdbc;
 
     public AuthService(UserRepository users, PasswordEncoder encoder, JwtService jwt,
-                       LoginRateLimiter limiter, RefreshTokenService refreshTokens) {
+                       LoginRateLimiter limiter, RefreshTokenService refreshTokens,
+                       EmailVerificationService verification, JdbcClient jdbc) {
         this.users = users;
         this.encoder = encoder;
         this.jwt = jwt;
         this.limiter = limiter;
         this.refreshTokens = refreshTokens;
+        this.verification = verification;
+        this.jdbc = jdbc;
     }
 
-    public Session register(RegisterRequest req) {
+    public RegisterResult register(RegisterRequest req) {
         String email = req.email().trim().toLowerCase();
         String phone = normalizePhone(req.phone());
         if (users.existsByEmail(email)) {
@@ -41,8 +47,9 @@ public class AuthService {
         u.setEmail(email);
         u.setPhone(phone);
         u.setPasswordHash(encoder.encode(req.password()));
-        users.save(u);
-        return session(u);
+        u = users.save(u);
+        verification.sendFor(u.getId().toString(), u.getFullName(), email);
+        return new RegisterResult(true, email);
     }
 
     public Session login(LoginRequest req, String ip) {
@@ -61,6 +68,12 @@ public class AuthService {
             limiter.recordFailure(emailKey);
             limiter.recordFailure(ipKey);
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid email or password");
+        }
+        // পাসওয়ার্ড ঠিক হলে তবেই ভেরিফিকেশন যাচাই
+        Boolean verified = jdbc.sql("SELECT email_verified FROM users WHERE id = :id")
+                .param("id", u.getId()).query(Boolean.class).single();
+        if (!Boolean.TRUE.equals(verified)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Email not verified");
         }
         limiter.reset(emailKey);
         return session(u);

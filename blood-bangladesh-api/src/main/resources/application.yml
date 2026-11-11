@@ -2,7 +2,7 @@
   application:
     name: blood-bangladesh-api
   datasource:
-    url: jdbc:postgresql://localhost:5432/${DB_NAME:blood_bd}
+    url: jdbc:postgresql://${DB_HOST:localhost}:5432/${DB_NAME:blood_bd}
     username: ${DB_USER:bb_user}
     password: ${DB_PASSWORD:bb_pass}
   jpa:
@@ -27,6 +27,7 @@ management:
 
 server:
   port: 8080
+  forward-headers-strategy: framework
 
 app:
   base-url: ${APP_BASE_URL:http://localhost:3000}

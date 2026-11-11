@@ -1,0 +1,63 @@
+﻿services:
+  db:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME:-blood_bd}
+      POSTGRES_USER: ${DB_USER:-bb_user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-bb_pass}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-bb_user} -d ${DB_NAME:-blood_bd}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build: ./blood-bangladesh-api
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DB_HOST: db
+      DB_NAME: ${DB_NAME:-blood_bd}
+      DB_USER: ${DB_USER:-bb_user}
+      DB_PASSWORD: ${DB_PASSWORD:-bb_pass}
+      JWT_SECRET: ${JWT_SECRET:-secret123456789012345678901234567890}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      MAIL_USERNAME: ${MAIL_USERNAME:-}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+      APP_BASE_URL: ${APP_BASE_URL:-http://localhost}
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}
+
+  web:
+    build:
+      context: ./blood-bangladesh-web
+      args:
+        NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+    restart: unless-stopped
+    depends_on:
+      - api
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    depends_on:
+      - web
+      - api
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMAIN: ${DOMAIN:-http://localhost}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+
+volumes:
+  pgdata:
+  caddy_data:
+  caddy_config:

@@ -17,7 +17,6 @@ public class AuthDtos {
     public record AuthResponse(String accessToken, String tokenType, long expiresInSeconds,
                                String fullName, String role) {}
 
-    // সার্ভারের ভেতরে ব্যবহার: JSON বডি + কুকিতে যাবে এমন refresh token
     public record Session(AuthResponse body, String refreshToken) {}
 
     public record ForgotRequest(@NotBlank @Email String email) {}
@@ -25,4 +24,8 @@ public class AuthDtos {
     public record ResetRequest(
             @NotBlank String token,
             @NotBlank @Size(min = 8, max = 72) String password) {}
+
+    public record VerifyEmailRequest(@NotBlank String token) {}
+
+    public record RegisterResult(boolean verificationRequired, String email) {}
 }

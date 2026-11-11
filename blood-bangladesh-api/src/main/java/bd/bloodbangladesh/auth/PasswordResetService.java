@@ -96,7 +96,7 @@ public class PasswordResetService {
         if (n == 0) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid or expired link");
         }
-        jdbc.sql("UPDATE users SET password_hash = :p, updated_at = now() WHERE id = CAST(:id AS uuid)")
+        jdbc.sql("UPDATE users SET password_hash = :p, email_verified = TRUE, updated_at = now() WHERE id = CAST(:id AS uuid)")
                 .param("p", encoder.encode(newPassword))
                 .param("id", row.userId()).update();
 
