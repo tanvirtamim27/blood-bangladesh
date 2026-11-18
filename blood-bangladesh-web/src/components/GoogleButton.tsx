@@ -14,8 +14,8 @@ type GoogleWindow = { google?: { accounts: { id: GoogleId } } };
 const CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
 
 const text = {
-  en: { or: "or", fail: "Google login failed. Please try again.", off: "Google login is not set up on the server." },
-  bn: { or: "অথবা", fail: "Google লগইন ব্যর্থ হয়েছে। আবার চেষ্টা করুন।", off: "সার্ভারে Google লগইন চালু করা হয়নি।" },
+  en: { fail: "Sign in failed. Please try again.", off: "Google sign in is not set up on the server." },
+  bn: { fail: "সাইন ইন ব্যর্থ হয়েছে। আবার চেষ্টা করুন।", off: "সার্ভারে Google সাইন ইন চালু করা হয়নি।" },
 };
 
 export default function GoogleButton() {
@@ -41,13 +41,25 @@ export default function GoogleButton() {
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({ idToken: resp.credential }),
             });
-            if (res.status === 503) setError(tr.off);
-            else if (!res.ok) setError(tr.fail);
-            else {
-              const data = await res.json();
-              saveAuth(data.accessToken, data.fullName);
-              router.push("/");
+            if (res.status === 503) {
+              setError(tr.off);
+              return;
             }
+            if (!res.ok) {
+              setError(tr.fail);
+              return;
+            }
+            const data = await res.json();
+            saveAuth(data.accessToken, data.fullName);
+
+            let needPhone = false;
+            try {
+              const me = await fetch("/api/v1/users/me", {
+                headers: { Authorization: `Bearer ${data.accessToken}` },
+              });
+              if (me.ok) needPhone = !(await me.json()).phone;
+            } catch {}
+            router.push(needPhone ? "/profile?setup=1" : "/");
           } catch {
             setError(tr.fail);
           }
@@ -82,7 +94,6 @@ export default function GoogleButton() {
 
   return (
     <div className="space-y-3">
-      <div className="text-center text-xs text-gray-500">— {text[lang].or} —</div>
       <div ref={ref} className="flex justify-center" />
       {error && <p className="text-center text-sm text-red-600">{error}</p>}
     </div>

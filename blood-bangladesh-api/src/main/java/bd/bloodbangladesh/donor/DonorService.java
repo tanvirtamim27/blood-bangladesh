@@ -30,11 +30,28 @@ public class DonorService {
     }
 
     @Transactional
+    public MeResponse updateContact(UUID userId, ContactRequest req) {
+        User u = findUser(userId);
+        String phone = req.phone().startsWith("01") ? "+88" + req.phone() : req.phone();
+        if (!phone.equals(u.getPhone()) && users.existsByPhone(phone)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Phone already used");
+        }
+        u.setFullName(req.fullName().trim());
+        u.setPhone(phone);
+        users.save(u);
+        DonorProfile p = profiles.findById(userId).orElse(null);
+        return toMe(u, p);
+    }
+
+    @Transactional
     public DonorProfileResponse saveProfile(UUID userId, DonorProfileRequest req) {
         if (req.lastDonationDate() != null && req.lastDonationDate().isAfter(LocalDate.now())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Last donation date cannot be in the future");
         }
         User u = findUser(userId);
+        if (u.getPhone() == null || u.getPhone().isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Phone number is required");
+        }
         DonorProfile p = profiles.findById(userId).orElseGet(() -> {
             DonorProfile np = new DonorProfile();
             np.setUser(u);

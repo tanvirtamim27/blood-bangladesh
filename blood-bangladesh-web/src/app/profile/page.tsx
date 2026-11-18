@@ -25,17 +25,52 @@ type Me = {
   donorProfile: Profile | null;
 };
 
+const extra = {
+  en: {
+    contactTitle: "Your details",
+    name: "Full name",
+    phone: "Mobile number (required)",
+    saveContact: "Save details",
+    contactSaved: "Details saved.",
+    phoneBad: "Invalid number. Use 01XXXXXXXXX.",
+    phoneTaken: "This number is already used by another account.",
+    needPhone: "Please add your mobile number first. It is required to create a donor profile.",
+    setupHint: "Welcome! Add your name and mobile number, then fill in your donor profile.",
+    phoneShown: "Your number is shown to logged-in users in search results.",
+  },
+  bn: {
+    contactTitle: "আপনার তথ্য",
+    name: "পূর্ণ নাম",
+    phone: "মোবাইল নম্বর (আবশ্যক)",
+    saveContact: "তথ্য সেভ করুন",
+    contactSaved: "তথ্য সেভ হয়েছে।",
+    phoneBad: "নম্বর সঠিক নয়। 01XXXXXXXXX লিখুন।",
+    phoneTaken: "এই নম্বর অন্য অ্যাকাউন্টে ব্যবহার হচ্ছে।",
+    needPhone: "আগে মোবাইল নম্বর যোগ করুন। রক্তদাতা প্রোফাইল বানাতে এটি আবশ্যক।",
+    setupHint: "স্বাগতম! আগে নাম ও মোবাইল নম্বর দিন, তারপর রক্তদাতা প্রোফাইল পূরণ করুন।",
+    phoneShown: "লগইন করা ব্যবহারকারীরা সার্চে আপনার নম্বর দেখতে পাবেন।",
+  },
+};
+
 const field =
   "w-full rounded-xl border border-gray-300 bg-white px-3 py-2 dark:border-gray-700 dark:bg-gray-900";
 
 export default function ProfilePage() {
   const router = useRouter();
   const { lang, t } = useLang();
+  const ex = extra[lang];
 
   const [me, setMe] = useState<Me | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
+  const [setup, setSetup] = useState(false);
+
+  const [fullName, setFullName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [contactMsg, setContactMsg] = useState("");
+  const [contactErr, setContactErr] = useState("");
+  const [savingContact, setSavingContact] = useState(false);
 
   const [bg, setBg] = useState("");
   const [divisionId, setDivisionId] = useState("");
@@ -54,12 +89,14 @@ export default function ProfilePage() {
 
   const locName = (l: Loc) => (lang === "bn" ? l.nameBn : l.nameEn);
   const today = new Date().toISOString().slice(0, 10);
+  const hasPhone = !!me?.phone;
 
   useEffect(() => {
     if (!getToken()) {
       router.replace("/login");
       return;
     }
+    setSetup(new URLSearchParams(window.location.search).get("setup") === "1");
     (async () => {
       try {
         const [m, divs] = await Promise.all([
@@ -67,6 +104,8 @@ export default function ProfilePage() {
           api<Loc[]>("/api/v1/locations/divisions"),
         ]);
         setMe(m);
+        setFullName(m.fullName);
+        setPhone(m.phone ?? "");
         setDivisions(divs);
         const p = m.donorProfile;
         if (p) {
@@ -93,6 +132,28 @@ export default function ProfilePage() {
     })();
   }, [router]);
 
+  async function saveContact(e: React.FormEvent) {
+    e.preventDefault();
+    setContactMsg("");
+    setContactErr("");
+    setSavingContact(true);
+    try {
+      const m = await api<Me>("/api/v1/users/me/contact", {
+        method: "PUT",
+        body: JSON.stringify({ fullName: fullName.trim(), phone: phone.trim() }),
+      });
+      setMe(m);
+      setPhone(m.phone ?? "");
+      localStorage.setItem("bb_name", m.fullName);
+      window.dispatchEvent(new Event("bb-auth"));
+      setContactMsg(ex.contactSaved);
+    } catch (x) {
+      setContactErr((x as { status?: number }).status === 409 ? ex.phoneTaken : ex.phoneBad);
+    } finally {
+      setSavingContact(false);
+    }
+  }
+
   async function onDivision(id: string) {
     setDivisionId(id);
     setDistrictId("");
@@ -113,6 +174,10 @@ export default function ProfilePage() {
     e.preventDefault();
     setMessage("");
     setError("");
+    if (!hasPhone) {
+      setError(ex.needPhone);
+      return;
+    }
     if (lastDate && lastDate > today) {
       setError(t("futureDate"));
       return;
@@ -162,13 +227,50 @@ export default function ProfilePage() {
     <div className="mx-auto max-w-2xl space-y-6">
       <h1 className="text-2xl font-bold">{t("profTitle")}</h1>
 
-      <div className="rounded-2xl border border-gray-200 p-4 dark:border-gray-800">
-        <div className="text-lg font-semibold">{me?.fullName}</div>
-        <div className="text-sm text-gray-600 dark:text-gray-400">{me?.email}</div>
-        <div className="text-sm text-gray-600 dark:text-gray-400">{me?.phone}</div>
-      </div>
+      {setup && !hasPhone && (
+        <p className="rounded-xl bg-green-50 p-3 text-sm text-green-800 dark:bg-green-950/30 dark:text-green-300">
+          {ex.setupHint}
+        </p>
+      )}
 
-      {!profile && (
+      <form
+        onSubmit={saveContact}
+        className="space-y-3 rounded-2xl border border-gray-200 p-4 dark:border-gray-800"
+      >
+        <h2 className="font-semibold">{ex.contactTitle}</h2>
+        <div className="text-sm text-gray-600 dark:text-gray-400">{me?.email}</div>
+        <label className="block text-sm">
+          {ex.name}
+          <input className={field} required maxLength={120} value={fullName} onChange={(e) => setFullName(e.target.value)} />
+        </label>
+        <label className="block text-sm">
+          {ex.phone}
+          <input
+            className={field}
+            required
+            placeholder="01XXXXXXXXX"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+          />
+        </label>
+        <p className="text-xs text-gray-500">{ex.phoneShown}</p>
+        {contactMsg && <p className="text-sm text-green-700 dark:text-green-400">{contactMsg}</p>}
+        {contactErr && <p className="text-sm text-red-600">{contactErr}</p>}
+        <button
+          disabled={savingContact}
+          className="rounded-xl border border-red-300 px-4 py-2 font-semibold text-red-600 hover:bg-red-50 disabled:opacity-60 dark:border-red-900 dark:hover:bg-red-950"
+        >
+          {ex.saveContact}
+        </button>
+      </form>
+
+      {!hasPhone && (
+        <p className="rounded-xl bg-amber-50 p-3 text-sm text-amber-800 dark:bg-amber-950/30 dark:text-amber-300">
+          {ex.needPhone}
+        </p>
+      )}
+
+      {!profile && hasPhone && (
         <p className="rounded-xl bg-red-50 p-3 text-sm text-red-700 dark:bg-red-950/40 dark:text-red-300">
           {t("profCreateHint")}
         </p>
@@ -227,7 +329,9 @@ export default function ProfilePage() {
 
       <form
         onSubmit={save}
-        className="grid gap-3 rounded-2xl border border-red-100 p-4 sm:grid-cols-2 dark:border-red-950"
+        className={`grid gap-3 rounded-2xl border border-red-100 p-4 sm:grid-cols-2 dark:border-red-950 ${
+          hasPhone ? "" : "pointer-events-none opacity-50"
+        }`}
       >
         <label className="text-sm sm:col-span-2">
           {t("group")}

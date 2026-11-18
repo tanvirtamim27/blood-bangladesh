@@ -23,6 +23,11 @@ public class UserController {
         return service.me(UUID.fromString(jwt.getSubject()));
     }
 
+    @PutMapping("/contact")
+    public MeResponse contact(@AuthenticationPrincipal Jwt jwt, @Valid @RequestBody ContactRequest req) {
+        return service.updateContact(UUID.fromString(jwt.getSubject()), req);
+    }
+
     @PutMapping("/donor-profile")
     public DonorProfileResponse saveProfile(@AuthenticationPrincipal Jwt jwt,
                                             @Valid @RequestBody DonorProfileRequest req) {

@@ -19,6 +19,8 @@ export default function Navbar() {
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
 
+  const signIn = lang === "bn" ? "সাইন ইন" : "Sign in";
+
   function logout() {
     clearAuth();
     setOpen(false);
@@ -138,17 +140,12 @@ export default function Navbar() {
               </button>
             </>
           ) : (
-            <div className="hidden items-center gap-2 sm:flex">
-              <Link href="/login" className={linkCls("/login")}>
-                {t("navLogin")}
-              </Link>
-              <Link
-                href="/register"
-                className="rounded-full bg-red-600 px-4 py-1.5 text-sm font-semibold text-white shadow hover:bg-red-700"
-              >
-                {t("navRegister")}
-              </Link>
-            </div>
+            <Link
+              href="/login"
+              className="hidden rounded-full bg-red-600 px-4 py-1.5 text-sm font-semibold text-white shadow hover:bg-red-700 sm:block"
+            >
+              {signIn}
+            </Link>
           )}
           <button
             aria-label="Language"
@@ -190,20 +187,12 @@ export default function Navbar() {
                 {t("navLogout")} ({name})
               </button>
             ) : (
-              <div className="mt-2 grid grid-cols-2 gap-2">
-                <Link
-                  href="/login"
-                  className="rounded-full border border-gray-300 px-3 py-2.5 text-center text-sm dark:border-gray-700"
-                >
-                  {t("navLogin")}
-                </Link>
-                <Link
-                  href="/register"
-                  className="rounded-full bg-red-600 px-3 py-2.5 text-center text-sm font-semibold text-white"
-                >
-                  {t("navRegister")}
-                </Link>
-              </div>
+              <Link
+                href="/login"
+                className="mt-2 rounded-full bg-red-600 px-3 py-2.5 text-center text-sm font-semibold text-white"
+              >
+                {signIn}
+              </Link>
             )}
           </div>
         </div>

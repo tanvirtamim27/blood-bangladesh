@@ -1,9 +1,8 @@
 package bd.bloodbangladesh.auth;
 
-import bd.bloodbangladesh.auth.AuthDtos.*;
-import jakarta.servlet.http.HttpServletRequest;
+import bd.bloodbangladesh.auth.AuthDtos.AuthResponse;
+import bd.bloodbangladesh.auth.AuthDtos.Session;
 import jakarta.servlet.http.HttpServletResponse;
-import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
@@ -11,42 +10,12 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/v1/auth")
 public class AuthController {
 
-    public record Ok(boolean ok) {}
-
     private final AuthService service;
-    private final EmailVerificationService verification;
     private final RefreshCookies cookies;
 
-    public AuthController(AuthService service, EmailVerificationService verification, RefreshCookies cookies) {
+    public AuthController(AuthService service, RefreshCookies cookies) {
         this.service = service;
-        this.verification = verification;
         this.cookies = cookies;
-    }
-
-    @PostMapping("/register")
-    @ResponseStatus(HttpStatus.CREATED)
-    public RegisterResult register(@Valid @RequestBody RegisterRequest req) {
-        return service.register(req);
-    }
-
-    @PostMapping("/login")
-    public AuthResponse login(@Valid @RequestBody LoginRequest req,
-                              HttpServletRequest http, HttpServletResponse res) {
-        Session s = service.login(req, http.getRemoteAddr());
-        cookies.set(res, s.refreshToken());
-        return s.body();
-    }
-
-    @PostMapping("/verify-email")
-    public Ok verify(@Valid @RequestBody VerifyEmailRequest req) {
-        verification.verify(req.token());
-        return new Ok(true);
-    }
-
-    @PostMapping("/resend-verification")
-    public Ok resend(@Valid @RequestBody ForgotRequest req, HttpServletRequest http) {
-        verification.resend(req.email(), http.getRemoteAddr());
-        return new Ok(true);
     }
 
     @PostMapping("/refresh")
