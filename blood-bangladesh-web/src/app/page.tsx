@@ -1,9 +1,11 @@
-"use client";
-
+﻿"use client";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { GROUPS } from "@/lib/api";
 import { useLang } from "@/lib/i18n";
 import RequestFeed from "@/components/RequestFeed";
+
+type PublicStats = { users: number; donors: number; donations: number; openRequests: number };
 
 const copy = {
   en: {
@@ -16,9 +18,14 @@ const copy = {
     live: "Urgent Blood Requests",
     all: "View all requests →",
     byGroup: "Search by blood group",
+    statsTitle: "Our community",
+    statUsers: "Members",
+    statDonors: "Registered donors",
+    statDonations: "Donations recorded",
+    statOpen: "Open requests now",
     howTitle: "How it works",
     steps: [
-      ["1", "👤", "Create an account", "Register with email or Google and add your blood group and area."],
+      ["1", "👤", "Create an account", "Sign in with Google and add your blood group and area."],
       ["2", "🔍", "Search or request", "Find donors near you, or post an urgent request for a patient."],
       ["3", "❤️", "Save a life", "Donors respond with one tap and you get notified instantly."],
     ],
@@ -29,6 +36,13 @@ const copy = {
     ],
     ctaTitle: "Ready to save a life?",
     ctaText: "It takes less than a minute to become a donor.",
+    devBy: "Initiated & Developed by:",
+    devName: "Tanvir Islam Tamim",
+    devDept:
+      "Department of ICT, Mawlana Bhashani Science and Technology University (MBSTU)",
+    connect: "Connect with Developer:",
+    notice:
+      "বিঃদ্রঃ এটি একটি সম্পূর্ণ স্বেচ্ছাসেবী উদ্যোগ। রক্তের বিনিময়ে কোনো প্রকার আর্থিক লেনদেন করবেন না।",
   },
   bn: {
     heroTitle: "একটি ফোঁটা রক্ত, একটি জীবন",
@@ -40,9 +54,14 @@ const copy = {
     live: "জরুরি রক্তের অনুরোধ",
     all: "সব অনুরোধ দেখুন →",
     byGroup: "রক্তের গ্রুপ অনুযায়ী খুঁজুন",
+    statsTitle: "আমাদের পরিবার",
+    statUsers: "সদস্য",
+    statDonors: "নিবন্ধিত রক্তদাতা",
+    statDonations: "রেকর্ড করা রক্তদান",
+    statOpen: "এখন খোলা অনুরোধ",
     howTitle: "কীভাবে কাজ করে",
     steps: [
-      ["১", "👤", "অ্যাকাউন্ট খুলুন", "ইমেইল বা Google দিয়ে রেজিস্টার করে রক্তের গ্রুপ ও এলাকা দিন।"],
+      ["১", "👤", "অ্যাকাউন্ট খুলুন", "Google দিয়ে সাইন ইন করে রক্তের গ্রুপ ও এলাকা দিন।"],
       ["২", "🔍", "খুঁজুন বা অনুরোধ করুন", "কাছের দাতা খুঁজুন, অথবা রোগীর জন্য জরুরি অনুরোধ পাঠান।"],
       ["৩", "❤️", "জীবন বাঁচান", "দাতা এক ক্লিকে সাড়া দেন, আপনি সঙ্গে সঙ্গে জানতে পারেন।"],
     ],
@@ -53,12 +72,55 @@ const copy = {
     ],
     ctaTitle: "জীবন বাঁচাতে প্রস্তুত?",
     ctaText: "রক্তদাতা হতে এক মিনিটও লাগে না।",
+    devBy: "Initiated & Developed by:",
+    devName: "Tanvir Islam Tamim",
+    devDept:
+      "Department of ICT, Mawlana Bhashani Science and Technology University (MBSTU)",
+    connect: "Connect with Developer:",
+    notice:
+      "বিঃদ্রঃ এটি একটি সম্পূর্ণ স্বেচ্ছাসেবী উদ্যোগ। রক্তের বিনিময়ে কোনো প্রকার আর্থিক লেনদেন করবেন না।",
   },
 };
+
+function CountUp({ value }: { value: number }) {
+  const [n, setN] = useState(0);
+  const raf = useRef<number | null>(null);
+  useEffect(() => {
+    const start = performance.now();
+    const dur = 1200;
+    const tick = (now: number) => {
+      const p = Math.min((now - start) / dur, 1);
+      setN(Math.round(value * (1 - Math.pow(1 - p, 3))));
+      if (p < 1) raf.current = requestAnimationFrame(tick);
+    };
+    raf.current = requestAnimationFrame(tick);
+    return () => {
+      if (raf.current) cancelAnimationFrame(raf.current);
+    };
+  }, [value]);
+  return <>{n.toLocaleString("en-US")}</>;
+}
 
 export default function Home() {
   const { lang } = useLang();
   const c = copy[lang];
+  const [stats, setStats] = useState<PublicStats | null>(null);
+
+  useEffect(() => {
+    fetch("/api/v1/public/stats")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => d && setStats(d))
+      .catch(() => {});
+  }, []);
+
+  const statItems = stats
+    ? [
+        ["👥", c.statUsers, stats.users],
+        ["🩸", c.statDonors, stats.donors],
+        ["❤️", c.statDonations, stats.donations],
+        ["🚨", c.statOpen, stats.openRequests],
+      ]
+    : [];
 
   return (
     <div className="space-y-14">
@@ -79,7 +141,7 @@ export default function Home() {
                 🔍 {c.find}
               </Link>
               <Link
-                href="/register"
+                href="/login"
                 className="rounded-full border-2 border-white/80 px-7 py-3 font-semibold hover:bg-white/15"
               >
                 {c.join}
@@ -121,6 +183,26 @@ export default function Home() {
         </div>
       </section>
 
+      {stats && (
+        <section>
+          <h2 className="mb-5 text-center text-2xl font-bold">{c.statsTitle}</h2>
+          <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+            {statItems.map(([icon, label, n]) => (
+              <div
+                key={String(label)}
+                className="rounded-3xl border border-red-100 bg-gradient-to-br from-red-50 to-white p-6 text-center shadow-sm hover:-translate-y-1 hover:shadow-lg dark:border-red-950 dark:from-red-950/30 dark:to-transparent"
+              >
+                <div className="text-3xl">{icon}</div>
+                <div className="mt-2 text-4xl font-extrabold text-red-600">
+                  <CountUp value={Number(n)} />
+                </div>
+                <div className="mt-1 text-sm text-gray-600 dark:text-gray-400">{label}</div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
       <section>
         <h2 className="mb-5 text-center text-2xl font-bold">{c.howTitle}</h2>
         <div className="grid gap-5 md:grid-cols-3">
@@ -157,11 +239,39 @@ export default function Home() {
         <h2 className="text-3xl font-bold">{c.ctaTitle}</h2>
         <p className="mt-2 text-red-50">{c.ctaText}</p>
         <Link
-          href="/register"
+          href="/login"
           className="mt-6 inline-block rounded-full bg-white px-8 py-3 font-semibold text-red-600 hover:scale-105"
         >
           {c.join}
         </Link>
+      </section>
+
+      <section className="rounded-3xl border border-gray-200 p-8 text-center dark:border-gray-800">
+        <p className="text-sm text-gray-500">{c.devBy}</p>
+        <h3 className="mt-1 text-2xl font-extrabold text-red-600">{c.devName}</h3>
+        <p className="mx-auto mt-1 max-w-2xl text-sm text-gray-700 dark:text-gray-300">{c.devDept}</p>
+        <p className="mt-5 text-sm text-gray-500">{c.connect}</p>
+        <div className="mt-2 flex items-center justify-center gap-3">
+          <a
+            href="https://www.facebook.com/tanvirislam.tamim.37"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="rounded-full border border-blue-300 px-5 py-1.5 text-sm font-semibold text-blue-700 hover:bg-blue-50 dark:border-blue-800 dark:text-blue-400 dark:hover:bg-blue-950/30"
+          >
+            Facebook
+          </a>
+          <a
+            href="https://www.linkedin.com/in/tanvir-islam-tamim-18b963256/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="rounded-full border border-sky-300 px-5 py-1.5 text-sm font-semibold text-sky-700 hover:bg-sky-50 dark:border-sky-800 dark:text-sky-400 dark:hover:bg-sky-950/30"
+          >
+            LinkedIn
+          </a>
+        </div>
+        <p className="mx-auto mt-6 max-w-2xl rounded-xl bg-red-50 p-3 text-sm text-red-700 dark:bg-red-950/30 dark:text-red-300">
+          {c.notice}
+        </p>
       </section>
     </div>
   );

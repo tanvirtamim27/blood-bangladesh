@@ -1,5 +1,4 @@
-"use client";
-
+﻿"use client";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { getRole } from "@/lib/api";
@@ -17,7 +16,6 @@ export default function Footer() {
   }, []);
 
   const link = "hover:text-red-600 hover:underline";
-
   return (
     <footer className="border-t border-gray-200 py-8 text-center text-sm text-gray-500 dark:border-gray-800 dark:text-gray-400">
       <div className="mb-3 flex flex-wrap items-center justify-center gap-x-6 gap-y-2">
@@ -42,7 +40,7 @@ export default function Footer() {
           </Link>
         )}
       </div>
-      <div>{t("footer")}</div>
+      <div>© 2026 Blood Bangladesh. All Rights Reserved.</div>
     </footer>
   );
 }

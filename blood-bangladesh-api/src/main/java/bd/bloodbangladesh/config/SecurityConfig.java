@@ -1,4 +1,4 @@
-package bd.bloodbangladesh.config;
+﻿package bd.bloodbangladesh.config;
 
 import bd.bloodbangladesh.security.EnabledUserFilter;
 import com.nimbusds.jose.jwk.source.ImmutableSecret;
@@ -29,7 +29,6 @@ import java.nio.charset.StandardCharsets;
 @Configuration
 @EnableMethodSecurity
 public class SecurityConfig {
-
     @Bean
     SecretKey jwtSecretKey(@Value("${app.jwt.secret}") String secret) {
         if (secret == null || secret.length() < 32) {
@@ -64,7 +63,6 @@ public class SecurityConfig {
         return converter;
     }
 
-    // Spring Boot যেন ফিল্টারটি আলাদাভাবে (সিকিউরিটি চেইনের বাইরে) না চালায়
     @Bean
     FilterRegistrationBean<EnabledUserFilter> enabledUserFilterRegistration(EnabledUserFilter filter) {
         FilterRegistrationBean<EnabledUserFilter> reg = new FilterRegistrationBean<>(filter);
@@ -76,16 +74,16 @@ public class SecurityConfig {
     SecurityFilterChain filterChain(HttpSecurity http, JwtAuthenticationConverter converter,
                                     EnabledUserFilter enabledUserFilter) throws Exception {
         http
-                .csrf(csrf -> csrf.disable())
-                .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .authorizeHttpRequests(a -> a
-                        .requestMatchers("/api/v1/auth/**", "/actuator/health", "/error").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/v1/donors/search", "/api/v1/locations/**",
-                                "/api/v1/requests/**", "/api/v1/blog/**").permitAll()
-                        .requestMatchers("/api/v1/admin/**").hasAuthority("ROLE_ADMIN")
-                        .anyRequest().authenticated())
-                .oauth2ResourceServer(o -> o.jwt(j -> j.jwtAuthenticationConverter(converter)))
-                .addFilterAfter(enabledUserFilter, BearerTokenAuthenticationFilter.class);
+            .csrf(csrf -> csrf.disable())
+            .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+            .authorizeHttpRequests(a -> a
+                .requestMatchers("/api/v1/auth/**", "/actuator/health", "/error").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/v1/donors/search", "/api/v1/locations/**",
+                                 "/api/v1/requests/**", "/api/v1/blog/**", "/api/v1/public/**").permitAll()
+                .requestMatchers("/api/v1/admin/**").hasAuthority("ROLE_ADMIN")
+                .anyRequest().authenticated())
+            .oauth2ResourceServer(o -> o.jwt(j -> j.jwtAuthenticationConverter(converter)))
+            .addFilterAfter(enabledUserFilter, BearerTokenAuthenticationFilter.class);
         return http.build();
     }
 }

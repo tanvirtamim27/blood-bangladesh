@@ -1,122 +1,61 @@
-"use client";
-
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import Link from "next/link";
-import { saveAuth } from "@/lib/api";
+﻿"use client";
 import { useLang } from "@/lib/i18n";
 import GoogleButton from "@/components/GoogleButton";
 
-const field =
-  "w-full rounded-xl border border-gray-300 bg-white px-3 py-2 dark:border-gray-700 dark:bg-gray-900";
-
-const extra = {
+const text = {
   en: {
-    unverified: "Your email is not verified yet. Please click the link we sent to your inbox.",
-    resend: "Resend verification email",
-    resent: "If this account needs verification, a new link has been sent.",
+    title: "Welcome to Blood Bangladesh",
+    sub: "Sign in with your Google account. New here? Your account is created automatically.",
+    points: [
+      ["🔍", "Find blood donors near you"],
+      ["🚨", "Post urgent blood requests"],
+      ["🏅", "Earn badges for every donation"],
+    ],
+    note: "After signing in, add your name, phone number and address in your profile.",
+    safe: "🔒 We never post anything on your Google account.",
   },
   bn: {
-    unverified: "আপনার ইমেইল এখনো ভেরিফাই হয়নি। ইনবক্সে পাঠানো লিংকে ক্লিক করুন।",
-    resend: "ভেরিফিকেশন ইমেইল আবার পাঠান",
-    resent: "ভেরিফিকেশন লাগলে নতুন লিংক পাঠানো হয়েছে।",
+    title: "ব্লাড বাংলাদেশে স্বাগতম",
+    sub: "আপনার Google অ্যাকাউন্ট দিয়ে সাইন ইন করুন। নতুন হলে অ্যাকাউন্ট নিজে থেকেই তৈরি হবে।",
+    points: [
+      ["🔍", "আপনার কাছের রক্তদাতা খুঁজুন"],
+      ["🚨", "জরুরি রক্তের অনুরোধ জানান"],
+      ["🏅", "প্রতিটি রক্তদানে ব্যাজ জিতুন"],
+    ],
+    note: "সাইন ইনের পর প্রোফাইলে নাম, ফোন নম্বর ও ঠিকানা যোগ করবেন।",
+    safe: "🔒 আপনার Google অ্যাকাউন্টে আমরা কিছুই পোস্ট করি না।",
   },
 };
 
 export default function LoginPage() {
-  const router = useRouter();
-  const { lang, t } = useLang();
-  const ex = extra[lang];
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
-  const [info, setInfo] = useState("");
-  const [needVerify, setNeedVerify] = useState(false);
-  const [loading, setLoading] = useState(false);
-
-  async function submit(e: React.FormEvent) {
-    e.preventDefault();
-    setLoading(true);
-    setError("");
-    setInfo("");
-    setNeedVerify(false);
-    try {
-      const res = await fetch("/api/v1/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-      });
-      if (res.status === 429) setError(t("tooMany"));
-      else if (res.status === 401) setError(t("badLogin"));
-      else if (res.status === 403) {
-        setError(ex.unverified);
-        setNeedVerify(true);
-      } else if (!res.ok) setError(t("badData"));
-      else {
-        const data = await res.json();
-        saveAuth(data.accessToken, data.fullName);
-        router.push("/");
-      }
-    } catch {
-      setError(t("noServer"));
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function resend() {
-    setInfo("");
-    try {
-      await fetch("/api/v1/auth/resend-verification", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
-      });
-      setInfo(ex.resent);
-    } catch {
-      setError(t("noServer"));
-    }
-  }
-
+  const { lang } = useLang();
+  const tr = text[lang];
   return (
-    <form
-      onSubmit={submit}
-      className="mx-auto max-w-md space-y-4 rounded-2xl border border-red-100 p-6 dark:border-red-950"
-    >
-      <h1 className="text-2xl font-bold">{t("loginTitle")}</h1>
-      <label className="block text-sm">
-        {t("email")}
-        <input className={field} type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
-      </label>
-      <label className="block text-sm">
-        {t("password")}
-        <input className={field} type="password" required value={password} onChange={(e) => setPassword(e.target.value)} />
-      </label>
-      <div className="text-right text-sm">
-        <Link href="/forgot-password" className="text-red-600 hover:underline">
-          {lang === "bn" ? "পাসওয়ার্ড ভুলে গেছেন?" : "Forgot password?"}
-        </Link>
+    <div className="mx-auto grid max-w-4xl overflow-hidden rounded-3xl border border-red-100 shadow-xl md:grid-cols-2 dark:border-red-950">
+      <div className="relative hidden flex-col justify-center gap-6 bg-gradient-to-br from-red-700 via-red-600 to-rose-500 p-10 text-white md:flex">
+        <div className="animate-pulse-soft absolute -right-16 -top-16 h-56 w-56 rounded-full bg-white/20 blur-3xl" />
+        <div className="animate-float text-7xl">🩸</div>
+        <ul className="relative space-y-4">
+          {tr.points.map(([icon, label]) => (
+            <li key={label} className="flex items-center gap-3 text-lg font-medium">
+              <span className="flex h-10 w-10 items-center justify-center rounded-full bg-white/20 text-xl">
+                {icon}
+              </span>
+              {label}
+            </li>
+          ))}
+        </ul>
       </div>
-      {error && <p className="text-sm text-red-600">{error}</p>}
-      {needVerify && (
-        <button type="button" onClick={resend} className="text-sm font-semibold text-red-600 underline">
-          {ex.resend}
-        </button>
-      )}
-      {info && <p className="text-sm text-green-700 dark:text-green-400">{info}</p>}
-      <button
-        disabled={loading}
-        className="w-full rounded-xl bg-red-600 py-2.5 font-semibold text-white hover:bg-red-700 disabled:opacity-60"
-      >
-        {loading ? t("wait") : t("loginBtn")}
-      </button>
-      <GoogleButton />
-      <p className="text-center text-sm">
-        {t("noAccount")}{" "}
-        <Link href="/register" className="text-red-600 underline">
-          {t("registerLink")}
-        </Link>
-      </p>
-    </form>
+      <div className="flex flex-col items-center justify-center gap-5 p-8 text-center sm:p-12">
+        <div className="text-5xl md:hidden">🩸</div>
+        <h1 className="text-2xl font-extrabold sm:text-3xl">{tr.title}</h1>
+        <p className="text-sm text-gray-600 dark:text-gray-400">{tr.sub}</p>
+        <div className="mt-2 w-full rounded-2xl border border-gray-200 p-5 shadow-sm transition hover:shadow-md dark:border-gray-800">
+          <GoogleButton />
+        </div>
+        <p className="text-xs text-gray-500">{tr.note}</p>
+        <p className="text-xs text-gray-500">{tr.safe}</p>
+      </div>
+    </div>
   );
 }
