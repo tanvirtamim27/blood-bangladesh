@@ -1,4 +1,4 @@
-﻿package bd.bloodbangladesh.config;
+package bd.bloodbangladesh.config;
 
 import bd.bloodbangladesh.security.EnabledUserFilter;
 import com.nimbusds.jose.jwk.source.ImmutableSecret;

@@ -1,4 +1,4 @@
-﻿package bd.bloodbangladesh.stats;
+package bd.bloodbangladesh.stats;
 
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.web.bind.annotation.GetMapping;
