@@ -46,11 +46,11 @@ export default function LoginPage() {
           ))}
         </ul>
       </div>
-      <div className="flex flex-col items-center justify-center gap-5 p-8 text-center sm:p-12">
+      <div className="flex min-w-0 flex-col items-center justify-center gap-5 p-5 text-center sm:p-12">
         <div className="text-5xl md:hidden">🩸</div>
         <h1 className="text-2xl font-extrabold sm:text-3xl">{tr.title}</h1>
         <p className="text-sm text-gray-600 dark:text-gray-400">{tr.sub}</p>
-        <div className="mt-2 w-full rounded-2xl border border-gray-200 p-5 shadow-sm transition hover:shadow-md dark:border-gray-800">
+        <div className="mt-2 w-full min-w-0 rounded-2xl border border-gray-200 p-3 shadow-sm transition hover:shadow-md sm:p-5 dark:border-gray-800">
           <GoogleButton />
         </div>
         <p className="text-xs text-gray-500">{tr.note}</p>
