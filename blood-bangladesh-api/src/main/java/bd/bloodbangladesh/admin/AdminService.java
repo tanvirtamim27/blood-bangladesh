@@ -85,12 +85,12 @@ public class AdminService {
         return new Ok(true);
     }
 
-    // admin বানানো বা সরানো
+    // Assign or remove admin role
     @Transactional
     public Ok setAdmin(UUID actorId, String id, boolean makeAdmin) {
         String uid = parseId(id);
 
-        // একসাথে দুজন admin বদলালে শেষ admin সরার ঝুঁকি এড়াতে সারি লক
+        // Row-level lock to avoid race conditions leaving zero admins
         jdbc.sql("SELECT id FROM users WHERE role = 'ROLE_ADMIN' FOR UPDATE").query(String.class).list();
 
         record Target(String role, boolean enabled) {}
